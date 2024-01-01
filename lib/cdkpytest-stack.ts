@@ -43,7 +43,6 @@ export class CdkpytestStack extends cdk.Stack {
         },
       })
     );
-    // pipeline.buildPipeline()
 
     const pytestStep = new CodeBuildStep('PytestStep', {
       // 既存のコマンドや設定
@@ -61,7 +60,6 @@ export class CdkpytestStack extends cdk.Stack {
             files: ['**/*coverage.xml'], // ここにはテスト結果ファイルのパスを指定
             'file-format': 'JUNIT', // フォーマット指定
             'base-directory': 'test-reports', // テストレポートが生成されるディレクトリ
-            // 'report-group-arn': 'arn:aws:codebuild:ap-northeast-1:968841012693:report-group/PipelineDeployStage2PytestS-S8OcVqJCkGFu-pytest-reports'
           }
         }
       }),
@@ -72,14 +70,6 @@ export class CdkpytestStack extends cdk.Stack {
 
   }
 }
-
-class CustomStage extends cdk.Stage {
-  constructor(scope: Construct, id: string, props?: cdk.StageProps) {
-    super(scope, id, props);
-    // ここでAWSリソースを追加する
-  }
-}
-
 
 export class AppStage extends Stage {
   constructor(scope: Construct, id: string, props: StageProps) {
