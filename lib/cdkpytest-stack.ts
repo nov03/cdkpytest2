@@ -32,11 +32,13 @@ export class CdkpytestStack extends cdk.Stack {
         commands: ["npm run build", "npx cdk synth"],
       }),
     });
+
     const pytestStep = new CodeBuildStep('PytestStep', {
       // 既存のコマンドや設定
       commands: [
         'pip install -r requirements.txt',
-        'pytest test/ --cov=lib/lambda --junitxml=coverage.xml'
+        'pytest test/ --cov=lib/lambda --junitxml=coverage.xml',
+        'ls -l'
       ],
       // partialBuildSpecを使用してreportsセクションを定義
       partialBuildSpec: BuildSpec.fromObject({
