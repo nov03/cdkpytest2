@@ -43,7 +43,7 @@ export class CdkpytestStack extends cdk.Stack {
         },
       })
     );
-    pipeline.buildPipeline()
+    // pipeline.buildPipeline()
 
     const pytestStep = new CodeBuildStep('PytestStep', {
       // 既存のコマンドや設定
