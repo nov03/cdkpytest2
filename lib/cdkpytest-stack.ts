@@ -6,7 +6,8 @@ import {
   pipelines as pipelines,
   aws_lambda as lambda,
 } from "aws-cdk-lib";
-import { ShellStep } from 'aws-cdk-lib/pipelines';
+import { CodeBuildStep } from 'aws-cdk-lib/pipelines';
+import { BuildSpec } from 'aws-cdk-lib/aws-codebuild';
 
 export class CdkpytestStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -27,6 +28,29 @@ export class CdkpytestStack extends cdk.Stack {
       }),
     });
 
+    const testCommands = [
+      'pip install -r requirements.txt', // 依存関係のインストール
+      'pytest test/ --cov=lib/lambda --junitxml=coverage.xml' // テストとカバレッジレポートの生成
+    ];
+
+    const buildSpec = BuildSpec.fromObject({
+      version: '0.2',
+      phases: {
+        install: {
+          commands: ['npm install'],
+        },
+        build: {
+          commands: testCommands,
+        },
+      },
+      reports: { // テストレポートの設定
+        'junit-reports': {
+          'files': ['**/*'],
+          'base-directory': 'test/',
+          'file-format': 'JUNITXML',
+        },
+      },
+    });
 
     const Stage = Pipeline.addStage(
       new AppStage(this, `DeployStage`, {
@@ -34,15 +58,43 @@ export class CdkpytestStack extends cdk.Stack {
           account: "968841012693",
           region: "ap-northeast-1",
         },
-      })
-
-    );
-    Stage.addPre(new ShellStep("Run Unit Tests", {
-      commands: [
-        'pip install -r requirements.txt', // 依存関係のインストール
-        'pytest test/ --cov=lib/lambda --cov-report=xml' // テストとカバレッジレポートの生成
+      }), {
+      pre: [
+        new CodeBuildStep('Run Unit Tests', {
+          input: pipelines.CodePipelineSource.gitHub('username/repo', 'branch'),
+          primaryOutputDirectory: 'cdk.out',
+          commands: [
+            // ここにビルドコマンドを入れます
+          ],
+          partialBuildSpec: BuildSpec.fromObject({
+            version: '0.2',
+            phases: {
+              pre_build: {
+                commands: [
+                  'echo Installing dependencies...',
+                  'pip install -r requirements.txt',
+                ],
+              },
+              build: {
+                commands: [
+                  'echo Running tests...',
+                  'pytest test/ --cov=lib/lambda --junitxml=coverage.xml',
+                ],
+              },
+            },
+            reports: {
+              junit_reports: {
+                files: [
+                  '**/*'
+                ],
+                'base-directory': 'test/',
+                'file-format': 'JUNITXML',
+              }
+            }
+          })
+        })
       ]
-    }))
+    });
   }
 }
 
