@@ -42,11 +42,13 @@ export class CdkpytestStack extends cdk.Stack {
       ],
       // partialBuildSpecを使用してreportsセクションを定義
       partialBuildSpec: BuildSpec.fromObject({
+        // ここでレポートグループの設定を行う
         reports: {
-          'MyTestReports': {
-            files: ['**/*coverage.xml'],
-            'file-format': 'JUNIT',
-            'base-directory': 'test-reports',
+          'pytest-reports': { // この名前は任意です
+            files: ['**/*coverage.xml'], // ここにはテスト結果ファイルのパスを指定
+            'file-format': 'JUNIT', // フォーマット指定
+            'base-directory': 'test-reports', // テストレポートが生成されるディレクトリ
+            'report-group-arn': reportGroup.reportGroupArn // レポートグループのARNを指定
           }
         }
       }),
