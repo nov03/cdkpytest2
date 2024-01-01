@@ -1,8 +1,8 @@
 import os,sys
 # Lambda関数があるディレクトリへの絶対パスをsys.pathに追加
 current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(os.path.dirname(current_dir))
-target_dir = os.path.join(parent_dir, 'cdkpytest/lib/func')
+parent_dir = os.path.dirname(current_dir)
+target_dir = os.path.join(parent_dir, 'lib/func')
 sys.path.append(target_dir)
 
 
