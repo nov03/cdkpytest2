@@ -1,24 +1,29 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
+import { ReportGroup } from 'aws-cdk-lib/aws-codebuild';
 import { Stack, StackProps, Stage, StageProps } from "aws-cdk-lib";
 import {
   aws_codecommit as codecommit,
   pipelines as pipelines,
-  aws_lambda as lambda,
+  aws_codebuild as codebuild,
 } from "aws-cdk-lib";
-import { CodeBuildStep } from 'aws-cdk-lib/pipelines';
+import { CodeBuildStep, CodePipeline, CodePipelineSource } from 'aws-cdk-lib/pipelines';
 import { BuildSpec } from 'aws-cdk-lib/aws-codebuild';
 
 export class CdkpytestStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
-
+    // レポートグループの作成
+    const reportGroup = new ReportGroup(this, 'ReportGroup', {
+      reportGroupName: 'MyTestReports',
+    });
+    // 既存のコードリポジトリとパイプラインの定義
     const repo = new codecommit.Repository(this, `pytestrepo`, {
       repositoryName: "pytestrepo",
     });
 
-    const Pipeline = new pipelines.CodePipeline(this, "Pipeline", {
-      pipelineName: "LoopPipeline",
+    const pipeline = new pipelines.CodePipeline(this, "Pipeline", {
+      pipelineName: "PytestPipeline",
       crossAccountKeys: true,
       dockerEnabledForSynth: true,
       synth: new pipelines.CodeBuildStep("Synth", {
@@ -27,82 +32,52 @@ export class CdkpytestStack extends cdk.Stack {
         commands: ["npm run build", "npx cdk synth"],
       }),
     });
-
-    const testCommands = [
-      'pip install -r requirements.txt', // 依存関係のインストール
-      'pytest test/ --cov=lib/lambda --junitxml=coverage.xml' // テストとカバレッジレポートの生成
-    ];
-
-    const buildSpec = BuildSpec.fromObject({
-      version: '0.2',
-      phases: {
-        install: {
-          commands: ['npm install'],
-        },
-        build: {
-          commands: testCommands,
-        },
-      },
-      reports: { // テストレポートの設定
-        'junit-reports': {
-          'files': ['**/*'],
-          'base-directory': 'test/',
-          'file-format': 'JUNITXML',
-        },
-      },
+    const pytestStep = new CodeBuildStep('PytestStep', {
+      // 既存のコマンドや設定
+      commands: [
+        'pip install -r requirements.txt',
+        'pytest test/ --cov=lib/lambda --junitxml=coverage.xml'
+      ],
+      // partialBuildSpecを使用してreportsセクションを定義
+      partialBuildSpec: BuildSpec.fromObject({
+        reports: {
+          'MyTestReports': {
+            files: ['**/*coverage.xml'],
+            'file-format': 'JUNIT',
+            'base-directory': 'test-reports',
+          }
+        }
+      }),
+      // その他のオプション
     });
 
-    const Stage = Pipeline.addStage(
-      new AppStage(this, `DeployStage`, {
+    const Stage = pipeline.addStage(
+      new AppStage(this, `DeployStage2`, {
         env: {
           account: "968841012693",
           region: "ap-northeast-1",
         },
-      }), {
-      pre: [
-        new CodeBuildStep('Run Unit Tests', {
-          input: pipelines.CodePipelineSource.gitHub('username/repo', 'branch'),
-          primaryOutputDirectory: 'cdk.out',
-          commands: [
-            // ここにビルドコマンドを入れます
-          ],
-          partialBuildSpec: BuildSpec.fromObject({
-            version: '0.2',
-            phases: {
-              pre_build: {
-                commands: [
-                  'echo Installing dependencies...',
-                  'pip install -r requirements.txt',
-                ],
-              },
-              build: {
-                commands: [
-                  'echo Running tests...',
-                  'pytest test/ --cov=lib/lambda --junitxml=coverage.xml',
-                ],
-              },
-            },
-            reports: {
-              junit_reports: {
-                files: [
-                  '**/*'
-                ],
-                'base-directory': 'test/',
-                'file-format': 'JUNITXML',
-              }
-            }
-          })
-        })
-      ]
-    });
+      })
+    );
+    Stage.addPre(pytestStep)
+
+
   }
 }
+
+class CustomStage extends cdk.Stage {
+  constructor(scope: Construct, id: string, props?: cdk.StageProps) {
+    super(scope, id, props);
+    // ここでAWSリソースを追加する
+  }
+}
+
 
 export class AppStage extends Stage {
   constructor(scope: Construct, id: string, props: StageProps) {
     super(scope, id, props);
 
-    new DeployStack(this, "id", props);
+    new DeployStack(this, "id2", props);
   }
 }
 
