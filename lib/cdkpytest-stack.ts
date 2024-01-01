@@ -33,11 +33,24 @@ export class CdkpytestStack extends cdk.Stack {
       }),
     });
 
+
+
+    const Stage = pipeline.addStage(
+      new AppStage(this, `DeployStage2`, {
+        env: {
+          account: "968841012693",
+          region: "ap-northeast-1",
+        },
+      })
+    );
+    pipeline.buildPipeline()
+
     const pytestStep = new CodeBuildStep('PytestStep', {
       // 既存のコマンドや設定
       commands: [
         'pip install -r requirements.txt',
-        'pytest test/ --cov=lib/lambda --junitxml=coverage.xml',
+        'mkdir -p test-reports',
+        'pytest test/ --cov=lib/lambda --junitxml=test-reports/coverage.xml',
         'ls -l'
       ],
       // partialBuildSpecを使用してreportsセクションを定義
@@ -48,21 +61,12 @@ export class CdkpytestStack extends cdk.Stack {
             files: ['**/*coverage.xml'], // ここにはテスト結果ファイルのパスを指定
             'file-format': 'JUNIT', // フォーマット指定
             'base-directory': 'test-reports', // テストレポートが生成されるディレクトリ
-            'report-group-arn': 'arn:aws:codebuild:ap-northeast-1:968841012693:report-group/PipelineDeployStage2PytestS-S8OcVqJCkGFu-pytest-reports'
+            // 'report-group-arn': 'arn:aws:codebuild:ap-northeast-1:968841012693:report-group/PipelineDeployStage2PytestS-S8OcVqJCkGFu-pytest-reports'
           }
         }
       }),
       // その他のオプション
     });
-
-    const Stage = pipeline.addStage(
-      new AppStage(this, `DeployStage2`, {
-        env: {
-          account: "968841012693",
-          region: "ap-northeast-1",
-        },
-      })
-    );
     Stage.addPre(pytestStep)
 
 
