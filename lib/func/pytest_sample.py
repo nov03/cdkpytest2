@@ -1,7 +1,7 @@
 def statement_coverage(flg1, flg2):
     print("Hello")
     if flg1 or flg2:
-        print("true!")
+        print("true")
     else:
         print("false!")
 
