@@ -27,7 +27,8 @@ export class CdkpytestStack extends cdk.Stack {
       crossAccountKeys: true,
       dockerEnabledForSynth: true,
       synth: new pipelines.CodeBuildStep("Synth", {
-        input: pipelines.CodePipelineSource.codeCommit(repo, "main"),
+        input: CodePipelineSource.gitHub('nov03/cdkpytest2', 'main'),
+        // input: pipelines.CodePipelineSource.codeCommit(repo, "main"),
         installCommands: ["npm ci"],
         commands: ["npm run build", "npx cdk synth"],
       }),
