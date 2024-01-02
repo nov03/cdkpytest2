@@ -1,6 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import { ReportGroup } from 'aws-cdk-lib/aws-codebuild';
 import { Stack, StackProps, Stage, StageProps } from "aws-cdk-lib";
 import {
   aws_codecommit as codecommit,
@@ -33,7 +32,6 @@ export class CdkpytestStack extends cdk.Stack {
             triggerOnPush: true,
           }
         ),
-        // input: pipelines.CodePipelineSource.codeCommit(repo, "main"),
         installCommands: ["npm ci"],
         commands: ["npm run build", "npx cdk synth"],
       }),
@@ -73,6 +71,25 @@ export class CdkpytestStack extends cdk.Stack {
     });
     Stage.addPre(pytestStep)
 
+
+    const pipelineTest = new pipelines.CodePipeline(this, "TestPipeline", {
+      pipelineName: "TestPipeline",
+      synth: new pipelines.CodeBuildStep("Synth", {
+        input: pipelines.CodePipelineSource.connection(
+          'nov03/cdkpytest2', 'feature/',
+          {
+            connectionArn: connectionArn,
+            triggerOnPush: true,
+          }
+        ),
+        commands: [
+          'pip install -r requirements.txt',
+          'mkdir -p test-reports',
+          'pytest test/ --cov=lib/func --junitxml=test-reports/coverage.xml',
+          'ls -l'
+        ],
+      }),
+    });
 
   }
 }
