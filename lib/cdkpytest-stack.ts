@@ -55,7 +55,7 @@ export class CdkpytestStack extends cdk.Stack {
       commands: [
         'pip install -r requirements.txt',
         'mkdir -p test-reports',
-        'pytest test/ --cov=lib/lambda --junitxml=test-reports/coverage.xml',
+        'pytest test/ --cov=lib/func --junitxml=test-reports/coverage.xml',
         'ls -l'
       ],
       // partialBuildSpecを使用してreportsセクションを定義
