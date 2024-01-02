@@ -13,10 +13,9 @@ import { BuildSpec } from 'aws-cdk-lib/aws-codebuild';
 export class CdkpytestStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
-    // レポートグループの作成
-    const reportGroup = new ReportGroup(this, 'ReportGroup', {
-      reportGroupName: 'MyTestReports',
-    });
+    const connectionArn =
+      "arn:aws:codestar-connections:ap-northeast-1:968841012693:connection/c90bc59d-a5d2-4cf0-965f-8f4d962ac667";
+
     // 既存のコードリポジトリとパイプラインの定義
     const repo = new codecommit.Repository(this, `pytestrepo`, {
       repositoryName: "pytestrepo",
@@ -27,7 +26,13 @@ export class CdkpytestStack extends cdk.Stack {
       crossAccountKeys: true,
       dockerEnabledForSynth: true,
       synth: new pipelines.CodeBuildStep("Synth", {
-        input: CodePipelineSource.gitHub('nov03/cdkpytest2', 'main'),
+        input: pipelines.CodePipelineSource.connection(
+          'nov03/cdkpytest2', 'main',
+          {
+            connectionArn: connectionArn,
+            triggerOnPush: true,
+          }
+        ),
         // input: pipelines.CodePipelineSource.codeCommit(repo, "main"),
         installCommands: ["npm ci"],
         commands: ["npm run build", "npx cdk synth"],
