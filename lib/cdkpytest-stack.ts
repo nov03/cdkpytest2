@@ -9,6 +9,12 @@ import {
 import { CodeBuildStep, CodePipeline, CodePipelineSource } from 'aws-cdk-lib/pipelines';
 import { BuildSpec } from 'aws-cdk-lib/aws-codebuild';
 
+import * as events from 'aws-cdk-lib/aws-events';
+import * as targets from 'aws-cdk-lib/aws-events-targets';
+import * as stepfunctions from 'aws-cdk-lib/aws-stepfunctions';
+import * as stepfunctionsTasks from 'aws-cdk-lib/aws-stepfunctions-tasks';
+
+
 export class CdkpytestStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
@@ -25,13 +31,14 @@ export class CdkpytestStack extends cdk.Stack {
       crossAccountKeys: true,
       dockerEnabledForSynth: true,
       synth: new pipelines.CodeBuildStep("Synth", {
-        input: pipelines.CodePipelineSource.connection(
-          'nov03/cdkpytest2', 'main',
-          {
-            connectionArn: connectionArn,
-            triggerOnPush: true,
-          }
-        ),
+        input: pipelines.CodePipelineSource.codeCommit(repo, 'main'),
+        // input: pipelines.CodePipelineSource.connection(
+        //   'nov03/cdkpytest2', 'main',
+        //   {
+        //     connectionArn: connectionArn,
+        //     triggerOnPush: true,
+        //   }
+        // ),
         installCommands: ["npm ci"],
         commands: ["npm run build", "npx cdk synth"],
       }),
@@ -72,24 +79,80 @@ export class CdkpytestStack extends cdk.Stack {
     Stage.addPre(pytestStep)
 
 
-    const pipelineTest = new pipelines.CodePipeline(this, "TestPipeline", {
-      pipelineName: "TestPipeline",
-      synth: new pipelines.CodeBuildStep("Synth", {
-        input: pipelines.CodePipelineSource.connection(
-          'nov03/cdkpytest2', 'feature/*',
-          {
-            connectionArn: connectionArn,
-            triggerOnPush: true,
-          }
-        ),
-        commands: [
-          'pip install -r requirements.txt',
-          'mkdir -p test-reports',
-          'pytest test/ --cov=lib/func --junitxml=test-reports/coverage.xml',
-          'ls -l'
-        ],
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // CodeBuildプロジェクトのインスタンスを定義
+    const project = new codebuild.Project(this, 'MyCodeBuildProject', {
+      source: codebuild.Source.codeCommit({ repository: repo }),
+      environment: {
+        buildImage: codebuild.LinuxBuildImage.STANDARD_5_0,
+      },
+      buildSpec: codebuild.BuildSpec.fromObject({
+        version: '0.2',
+        phases: {
+          build: {
+            commands: [
+              'echo Building...',
+              // 他のビルドコマンド
+            ],
+          },
+        },
+        // 他のbuildSpecの設定
       }),
     });
+    // Step Functionsのステートマシンで使用するタスクを定義
+    const startBuildTask = new stepfunctionsTasks.CodeBuildStartBuild(this, 'StartBuild', {
+      project: project,
+      // 必要に応じてenvironmentVariablesOverrideを設定
+    });
+
+    // ステートマシンの定義
+    const definition = new stepfunctions.Pass(this, 'DefState', {
+      resultPath: '$.buildResult',
+      result: stepfunctions.Result.fromObject({
+        BuildStatus: 'Started'
+      })
+    }).next(startBuildTask);
+
+    const stateMachine = new stepfunctions.StateMachine(this, 'StateMachine', {
+      definition,
+      timeout: cdk.Duration.minutes(5)
+    });
+
+
+    // EventBridgeルールを定義
+    const rule = new events.Rule(this, 'Rule', {
+      eventPattern: {
+        source: ['aws.codecommit'],
+        detailType: ['CodeCommit Repository State Change'],
+        resources: [repo.repositoryArn],
+        detail: {
+          event: ['referenceCreated', 'referenceUpdated'],
+          referenceType: ['branch'],
+          referenceName: [{
+            prefix: 'feature/'
+          }]
+        }
+      }
+    });
+
+    // EventBridgeルールをステートマシンに接続
+    rule.addTarget(new targets.SfnStateMachine(stateMachine));
+
+
 
   }
 }
