@@ -76,7 +76,7 @@ export class CdkpytestStack extends cdk.Stack {
       pipelineName: "TestPipeline",
       synth: new pipelines.CodeBuildStep("Synth", {
         input: pipelines.CodePipelineSource.connection(
-          'nov03/cdkpytest2', 'feature/',
+          'nov03/cdkpytest2', 'feature/*',
           {
             connectionArn: connectionArn,
             triggerOnPush: true,
