@@ -7,16 +7,18 @@ sys.path.append(target_dir)
 
 
 
-# Lambda関数のファイルをインポート
-try:
-    from pytest_sample import lambda_handler
-except ModuleNotFoundError:
-    print(f"Current sys.path: {sys.path}")
-    raise
+from pytest_sample import lambda_handler
 
-def test_lambda_handler():
-    event = {}  # テスト用のイベント
-    context = None  # Lambdaコンテキストは通常、テストでは必要ありません
-    response = lambda_handler(event, context)
-    assert response['statusCode'] == 200
-    assert response['body'] == 'Hello from Lambda!'
+def test_lambda_handler_true():
+    event = {'flg1': True, 'flg2': False}
+    result = lambda_handler(event, None)
+    assert result['statusCode'] == 200
+    assert result['body'] == 'Hello from Lambda!'
+    # statement_coverageの挙動を検証するための追加のアサーションをここに記述
+
+def test_lambda_handler_false():
+    event = {'flg1': False, 'flg2': False}
+    result = lambda_handler(event, None)
+    assert result['statusCode'] == 200
+    assert result['body'] == 'Hello from Lambda!'
+    # statement_coverageの挙動を検証するための追加のアサーションをここに記述
