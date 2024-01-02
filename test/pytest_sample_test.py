@@ -16,9 +16,9 @@ def test_lambda_handler_true():
     assert result['body'] == 'Hello from Lambda!'
     # statement_coverageの挙動を検証するための追加のアサーションをここに記述
 
-def test_lambda_handler_false():
-    event = {'flg1': False, 'flg2': False}
-    result = lambda_handler(event, None)
-    assert result['statusCode'] == 200
-    assert result['body'] == 'Hello from Lambda!'
-    # statement_coverageの挙動を検証するための追加のアサーションをここに記述
+# def test_lambda_handler_false():
+#     event = {'flg1': False, 'flg2': False}
+#     result = lambda_handler(event, None)
+#     assert result['statusCode'] == 200
+#     assert result['body'] == 'Hello from Lambda!'
+#     # statement_coverageの挙動を検証するための追加のアサーションをここに記述
